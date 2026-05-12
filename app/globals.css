@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: oklch(0.145 0 0);
+  --color-foreground: oklch(0.985 0 0);
+  --color-card: oklch(0.178 0.012 256);
+  --color-card-foreground: oklch(0.985 0 0);
+  --color-popover: oklch(0.178 0.012 256);
+  --color-popover-foreground: oklch(0.985 0 0);
+  --color-primary: oklch(0.696 0.17 162);
+  --color-primary-foreground: oklch(0.145 0 0);
+  --color-secondary: oklch(0.269 0.015 256);
+  --color-secondary-foreground: oklch(0.985 0 0);
+  --color-muted: oklch(0.269 0.015 256);
+  --color-muted-foreground: oklch(0.708 0.02 256);
+  --color-accent: oklch(0.696 0.17 162);
+  --color-accent-foreground: oklch(0.145 0 0);
+  --color-destructive: oklch(0.628 0.209 25);
+  --color-destructive-foreground: oklch(0.985 0 0);
+  --color-border: oklch(0.320 0.02 256);
+  --color-input: oklch(0.320 0.02 256);
+  --color-ring: oklch(0.696 0.17 162);
+  --color-success: oklch(0.696 0.17 162);
+  --color-warning: oklch(0.769 0.171 70);
+  --color-info: oklch(0.623 0.163 255);
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
