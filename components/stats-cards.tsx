@@ -2,7 +2,8 @@
 
 import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, MessageSquare, Send, UserCheck } from "lucide-react";
+import { Users, MessageSquare, Send, UserCheck, AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -35,6 +36,67 @@ export function StatsCards() {
           Erro ao carregar estatisticas. Verifique as configuracoes.
         </p>
       </div>
+    );
+  }
+
+  if (data.setupRequired) {
+    return (
+      <Card className="border-amber-500/50 bg-amber-500/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-amber-600">
+            <AlertCircle className="h-5 w-5" />
+            Configuracao Necessaria
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            As tabelas do banco de dados ainda nao foram criadas. Acesse seu NocoDB e crie as seguintes tabelas:
+          </p>
+          <div className="space-y-3 text-sm">
+            <div className="p-3 rounded bg-background border">
+              <p className="font-medium mb-2">Tabela: leads</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>nome (Text)</li>
+                <li>telefone (Text)</li>
+                <li>endereco (Text)</li>
+                <li>cidade (Text)</li>
+                <li>estado (Text)</li>
+                <li>nicho (Text)</li>
+                <li>website (URL)</li>
+                <li>rating (Number)</li>
+                <li>status (SingleSelect: novo, contatado, respondeu, convertido)</li>
+                <li>google_place_id (Text)</li>
+              </ul>
+            </div>
+            <div className="p-3 rounded bg-background border">
+              <p className="font-medium mb-2">Tabela: templates</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>nome (Text)</li>
+                <li>mensagem (LongText)</li>
+                <li>ativo (Checkbox)</li>
+              </ul>
+            </div>
+            <div className="p-3 rounded bg-background border">
+              <p className="font-medium mb-2">Tabela: envios</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>lead_id (Number)</li>
+                <li>template_id (Number)</li>
+                <li>instancia (Text)</li>
+                <li>status (SingleSelect: enviado, erro, entregue)</li>
+                <li>message_id (Text)</li>
+                <li>enviado_em (DateTime)</li>
+                <li>erro_mensagem (Text)</li>
+              </ul>
+            </div>
+          </div>
+          <Link 
+            href="/configuracoes" 
+            className="inline-flex items-center text-sm font-medium text-primary hover:underline"
+          >
+            Ver instrucoes completas
+          </Link>
+        </CardContent>
+      </Card>
     );
   }
 

@@ -122,7 +122,7 @@ export default function ConfiguracoesPage() {
             </CardContent>
           </Card>
 
-          {/* API Configurations */}
+          {/* NocoDB Setup */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -130,24 +130,73 @@ export default function ConfiguracoesPage() {
                   <Database className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>NocoDB</CardTitle>
+                  <CardTitle>NocoDB - Setup das Tabelas</CardTitle>
                   <CardDescription>Banco de dados para leads e templates</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
               <div className="space-y-2 text-sm">
                 <p className="text-muted-foreground">
-                  Configure as variaveis de ambiente:
+                  Variaveis de ambiente necessarias:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li><code className="bg-secondary px-1 rounded">NOCODB_URL</code> - URL da sua instancia NocoDB</li>
                   <li><code className="bg-secondary px-1 rounded">NOCODB_TOKEN</code> - Token de API do NocoDB</li>
-                  <li><code className="bg-secondary px-1 rounded">NOCODB_BASE_ID</code> - ID da base de dados</li>
                 </ul>
-                <p className="text-xs text-muted-foreground mt-4">
-                  Tabelas necessarias: leads, templates, envios
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">Criar Tabelas no NocoDB</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Acesse seu NocoDB e crie as seguintes tabelas com os campos especificados:
                 </p>
+                
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-secondary/50 border">
+                    <h5 className="font-medium text-sm mb-2">1. Tabela: leads</h5>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div>nome (Text)</div>
+                      <div>telefone (Text)</div>
+                      <div>endereco (Text)</div>
+                      <div>cidade (Text)</div>
+                      <div>estado (Text)</div>
+                      <div>nicho (Text)</div>
+                      <div>website (URL)</div>
+                      <div>rating (Number)</div>
+                      <div>status (SingleSelect)</div>
+                      <div>google_place_id (Text)</div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Status: novo, contatado, respondeu, convertido
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-secondary/50 border">
+                    <h5 className="font-medium text-sm mb-2">2. Tabela: templates</h5>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div>nome (Text)</div>
+                      <div>mensagem (LongText)</div>
+                      <div>ativo (Checkbox)</div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-secondary/50 border">
+                    <h5 className="font-medium text-sm mb-2">3. Tabela: envios</h5>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div>lead_id (Number)</div>
+                      <div>template_id (Number)</div>
+                      <div>instancia (Text)</div>
+                      <div>status (SingleSelect)</div>
+                      <div>message_id (Text)</div>
+                      <div>enviado_em (DateTime)</div>
+                      <div>erro_mensagem (Text)</div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Status: enviado, erro, entregue
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
