@@ -1,6 +1,10 @@
 const NOCODB_URL = process.env.NOCODB_URL || "";
 const NOCODB_TOKEN = process.env.NOCODB_TOKEN || "";
-const NOCODB_BASE_ID = process.env.NOCODB_BASE_ID || "";
+
+// IDs das tabelas no NocoDB
+const TABLE_LEADS = "msl9nl28dve8zz1";
+const TABLE_TEMPLATES = "m1ttks8wzbcdfth";
+const TABLE_ENVIOS = "ml9bpjlqgdmuxl3";
 
 export interface Lead {
   Id?: number;
@@ -74,7 +78,7 @@ async function nocoFetch<T>(
 export async function getLeads(
   filters?: Record<string, string>
 ): Promise<NocoDBListResponse<Lead>> {
-  let endpoint = `/tables/leads/records?limit=100`;
+  let endpoint = `/tables/${TABLE_LEADS}/records?limit=100`;
 
   if (filters) {
     const where = Object.entries(filters)
@@ -87,14 +91,14 @@ export async function getLeads(
 }
 
 export async function createLead(lead: Omit<Lead, "Id">): Promise<Lead> {
-  return nocoFetch<Lead>(`/tables/leads/records`, {
+  return nocoFetch<Lead>(`/tables/${TABLE_LEADS}/records`, {
     method: "POST",
     body: JSON.stringify(lead),
   });
 }
 
 export async function createLeadsBulk(leads: Omit<Lead, "Id">[]): Promise<Lead[]> {
-  return nocoFetch<Lead[]>(`/tables/leads/records`, {
+  return nocoFetch<Lead[]>(`/tables/${TABLE_LEADS}/records`, {
     method: "POST",
     body: JSON.stringify(leads),
   });
@@ -104,14 +108,14 @@ export async function updateLead(
   id: number,
   data: Partial<Lead>
 ): Promise<Lead> {
-  return nocoFetch<Lead>(`/tables/leads/records`, {
+  return nocoFetch<Lead>(`/tables/${TABLE_LEADS}/records`, {
     method: "PATCH",
     body: JSON.stringify({ Id: id, ...data }),
   });
 }
 
 export async function deleteLead(id: number): Promise<void> {
-  await nocoFetch(`/tables/leads/records`, {
+  await nocoFetch(`/tables/${TABLE_LEADS}/records`, {
     method: "DELETE",
     body: JSON.stringify({ Id: id }),
   });
@@ -119,7 +123,7 @@ export async function deleteLead(id: number): Promise<void> {
 
 export async function checkLeadExists(googlePlaceId: string): Promise<boolean> {
   const result = await nocoFetch<NocoDBListResponse<Lead>>(
-    `/tables/leads/records?where=(google_place_id,eq,${googlePlaceId})&limit=1`
+    `/tables/${TABLE_LEADS}/records?where=(google_place_id,eq,${googlePlaceId})&limit=1`
   );
   return result.list.length > 0;
 }
@@ -127,14 +131,14 @@ export async function checkLeadExists(googlePlaceId: string): Promise<boolean> {
 // Templates CRUD
 export async function getTemplates(): Promise<NocoDBListResponse<Template>> {
   return nocoFetch<NocoDBListResponse<Template>>(
-    `/tables/templates/records?limit=100`
+    `/tables/${TABLE_TEMPLATES}/records?limit=100`
   );
 }
 
 export async function createTemplate(
   template: Omit<Template, "Id">
 ): Promise<Template> {
-  return nocoFetch<Template>(`/tables/templates/records`, {
+  return nocoFetch<Template>(`/tables/${TABLE_TEMPLATES}/records`, {
     method: "POST",
     body: JSON.stringify(template),
   });
@@ -144,14 +148,14 @@ export async function updateTemplate(
   id: number,
   data: Partial<Template>
 ): Promise<Template> {
-  return nocoFetch<Template>(`/tables/templates/records`, {
+  return nocoFetch<Template>(`/tables/${TABLE_TEMPLATES}/records`, {
     method: "PATCH",
     body: JSON.stringify({ Id: id, ...data }),
   });
 }
 
 export async function deleteTemplate(id: number): Promise<void> {
-  await nocoFetch(`/tables/templates/records`, {
+  await nocoFetch(`/tables/${TABLE_TEMPLATES}/records`, {
     method: "DELETE",
     body: JSON.stringify({ Id: id }),
   });
@@ -160,12 +164,12 @@ export async function deleteTemplate(id: number): Promise<void> {
 // Envios CRUD
 export async function getEnvios(): Promise<NocoDBListResponse<Envio>> {
   return nocoFetch<NocoDBListResponse<Envio>>(
-    `/tables/envios/records?limit=100&sort=-enviado_em`
+    `/tables/${TABLE_ENVIOS}/records?limit=100&sort=-enviado_em`
   );
 }
 
 export async function createEnvio(envio: Omit<Envio, "Id">): Promise<Envio> {
-  return nocoFetch<Envio>(`/tables/envios/records`, {
+  return nocoFetch<Envio>(`/tables/${TABLE_ENVIOS}/records`, {
     method: "POST",
     body: JSON.stringify(envio),
   });
@@ -175,7 +179,7 @@ export async function updateEnvio(
   id: number,
   data: Partial<Envio>
 ): Promise<Envio> {
-  return nocoFetch<Envio>(`/tables/envios/records`, {
+  return nocoFetch<Envio>(`/tables/${TABLE_ENVIOS}/records`, {
     method: "PATCH",
     body: JSON.stringify({ Id: id, ...data }),
   });
