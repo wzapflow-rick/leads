@@ -26,15 +26,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get leads
+    // Get leads - converter IDs para comparacao correta (string/number)
     const leadsResult = await getLeads();
+    const leadIdsSet = new Set(leadIds.map(id => String(id)));
     const leads = leadsResult.list.filter((lead) =>
-      leadIds.includes(lead.Id)
+      lead.Id !== undefined && leadIdsSet.has(String(lead.Id))
     );
 
     if (leads.length === 0) {
       return NextResponse.json(
-        { error: "Nenhum lead encontrado" },
+        { error: `Nenhum lead encontrado. IDs solicitados: ${leadIds.join(", ")}` },
         { status: 404 }
       );
     }
@@ -50,10 +51,22 @@ export async function POST(request: NextRequest) {
     // Send messages with delay
     for (let i = 0; i < leads.length; i++) {
       const lead = leads[i];
+      const leadId = lead.Id;
+
+      // Verifica se o lead tem ID valido
+      if (!leadId) {
+        results.push({
+          leadId: 0,
+          nome: lead.nome || "Desconhecido",
+          success: false,
+          error: "Lead sem ID valido",
+        });
+        continue;
+      }
 
       if (!lead.telefone) {
         results.push({
-          leadId: lead.Id!,
+          leadId,
           nome: lead.nome,
           success: false,
           error: "Lead sem telefone",
@@ -77,37 +90,49 @@ export async function POST(request: NextRequest) {
         const response = await sendTextMessage(instanceName, phone, message);
 
         // Update lead status
-        await updateLead(lead.Id!, { status: "contatado" });
+        try {
+          await updateLead(leadId, { status: "contatado" });
+        } catch (updateErr) {
+          console.error("Erro ao atualizar status do lead:", updateErr);
+        }
 
         // Log envio
-        await createEnvio({
-          lead_id: lead.Id!,
-          template_id: templateId,
-          instancia: instanceName,
-          status: "enviado",
-          message_id: response.key.id,
-          enviado_em: new Date().toISOString(),
-        });
+        try {
+          await createEnvio({
+            lead_id: leadId,
+            template_id: templateId,
+            instancia: instanceName,
+            status: "enviado",
+            message_id: response.key?.id || "",
+            enviado_em: new Date().toISOString(),
+          });
+        } catch (envioErr) {
+          console.error("Erro ao criar registro de envio:", envioErr);
+        }
 
         results.push({
-          leadId: lead.Id!,
+          leadId,
           nome: lead.nome,
           success: true,
-          messageId: response.key.id,
+          messageId: response.key?.id,
         });
       } catch (error) {
-        // Log failed envio
-        await createEnvio({
-          lead_id: lead.Id!,
-          template_id: templateId,
-          instancia: instanceName,
-          status: "erro",
-          erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
-          enviado_em: new Date().toISOString(),
-        });
+        // Log failed envio (mas nao falha se o log der erro)
+        try {
+          await createEnvio({
+            lead_id: leadId,
+            template_id: templateId,
+            instancia: instanceName,
+            status: "erro",
+            erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
+            enviado_em: new Date().toISOString(),
+          });
+        } catch (envioErr) {
+          console.error("Erro ao criar registro de envio com erro:", envioErr);
+        }
 
         results.push({
-          leadId: lead.Id!,
+          leadId,
           nome: lead.nome,
           success: false,
           error: error instanceof Error ? error.message : "Erro ao enviar",
@@ -116,7 +141,7 @@ export async function POST(request: NextRequest) {
 
       // Wait between messages (except for the last one)
       if (i < leads.length - 1) {
-        await delay(Math.max(delayMs, 3000)); // Minimum 3 seconds
+        await delay(Math.max(delayMs, 30000)); // Minimum 30 seconds
       }
     }
 
