@@ -29,7 +29,7 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
 
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
   const [selectedInstance, setSelectedInstance] = useState<string>("");
-  const [delaySeconds, setDelaySeconds] = useState(5);
+  const [delaySeconds, setDelaySeconds] = useState(10);
   const [isSending, setIsSending] = useState(false);
   const [results, setResults] = useState<{
     total: number;
@@ -201,18 +201,24 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Intervalo entre mensagens (segundos)
+                  Intervalo entre mensagens
                 </label>
-                <Input
-                  type="number"
-                  min={3}
-                  max={60}
-                  value={delaySeconds}
-                  onChange={(e) => setDelaySeconds(parseInt(e.target.value) || 5)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Minimo 3 segundos para evitar bloqueio
-                </p>
+                <Select
+                  value={delaySeconds.toString()}
+                  onChange={(e) => setDelaySeconds(parseInt(e.target.value))}
+                >
+                  <option value="5">5 segundos (rapido - maior risco)</option>
+                  <option value="10">10 segundos (recomendado)</option>
+                  <option value="15">15 segundos (seguro)</option>
+                  <option value="30">30 segundos (muito seguro)</option>
+                  <option value="60">60 segundos (ultra seguro)</option>
+                </Select>
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-500">
+                    Intervalos maiores reduzem o risco de banimento do numero.
+                    Recomendamos no minimo 10 segundos entre mensagens.
+                  </p>
+                </div>
               </div>
 
               <div className="flex gap-2">

@@ -99,3 +99,54 @@ export async function checkNumberExists(
   
   return response[0] || { exists: false, jid: "" };
 }
+
+export async function createInstance(instanceName: string): Promise<{
+  instance: { instanceName: string; status: string };
+  hash: { apikey: string };
+  qrcode?: { base64: string };
+}> {
+  return evolutionFetch(`/instance/create`, {
+    method: "POST",
+    body: JSON.stringify({
+      instanceName,
+      qrcode: true,
+      integration: "WHATSAPP-BAILEYS",
+    }),
+  });
+}
+
+export async function connectInstance(instanceName: string): Promise<{
+  pairingCode?: string;
+  code?: string;
+  base64?: string;
+  count?: number;
+}> {
+  return evolutionFetch(`/instance/connect/${instanceName}`);
+}
+
+export async function getQRCode(instanceName: string): Promise<{
+  pairingCode?: string;
+  code?: string;
+  base64?: string;
+  count?: number;
+}> {
+  return evolutionFetch(`/instance/connect/${instanceName}`);
+}
+
+export async function logoutInstance(instanceName: string): Promise<void> {
+  await evolutionFetch(`/instance/logout/${instanceName}`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteInstance(instanceName: string): Promise<void> {
+  await evolutionFetch(`/instance/delete/${instanceName}`, {
+    method: "DELETE",
+  });
+}
+
+export async function restartInstance(instanceName: string): Promise<void> {
+  await evolutionFetch(`/instance/restart/${instanceName}`, {
+    method: "PUT",
+  });
+}
