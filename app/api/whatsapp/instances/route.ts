@@ -7,30 +7,7 @@ interface InstanceData {
   instanceName: string;
   status: string;
   owner?: string;
-}
-
-// Busca status de conexao de uma instancia especifica
-async function getConnectionStatus(instanceName: string): Promise<string> {
-  try {
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/instance/connectionState/${instanceName}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          apikey: EVOLUTION_API_KEY,
-        },
-      }
-    );
-    
-    if (response.ok) {
-      const data = await response.json();
-      // Pode retornar { state: "open" } ou { instance: { state: "open" } }
-      return data.state || data.instance?.state || data.status || "unknown";
-    }
-    return "unknown";
-  } catch {
-    return "unknown";
-  }
+  profileName?: string;
 }
 
 export async function GET() {
@@ -56,30 +33,22 @@ export async function GET() {
 
     const data = await response.json();
 
-    // Extrai nomes das instancias de diferentes formatos
-    const instanceNames: string[] = [];
+    // Formato da Evolution API v2:
+    // { name, connectionStatus, ownerJid, profileName, ... }
+    const formatted: InstanceData[] = [];
 
     if (Array.isArray(data)) {
       for (const item of data) {
-        if (item.instance?.instanceName) {
-          instanceNames.push(item.instance.instanceName);
-        } else if (item.instanceName) {
-          instanceNames.push(item.instanceName);
-        } else if (item.name) {
-          instanceNames.push(item.name);
-        }
+        formatted.push({
+          instanceName: item.name || item.instanceName || item.instance?.instanceName,
+          status: item.connectionStatus || item.status || item.instance?.status || "unknown",
+          owner: item.ownerJid || item.owner,
+          profileName: item.profileName,
+        });
       }
     }
 
-    // Busca status de conexao de cada instancia em paralelo
-    const statusPromises = instanceNames.map(async (name) => {
-      const status = await getConnectionStatus(name);
-      return { instanceName: name, status };
-    });
-
-    const formatted: InstanceData[] = await Promise.all(statusPromises);
-
-    // Filter only connected instances
+    // Filter only connected instances (connectionStatus === "open")
     const connected = formatted.filter(
       (inst) => 
         inst.status === "open" || 
