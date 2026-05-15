@@ -123,19 +123,19 @@ export async function POST(request: NextRequest) {
           console.error("Erro ao atualizar status do lead:", updateErr);
         }
 
-        // Log envio
-        try {
-          await createEnvio({
-            lead_id: leadId,
-            template_id: templateId,
-            instancia: instanceName,
-            status: "enviado",
-            message_id: response.key?.id || "",
-            enviado_em: new Date().toISOString(),
-          });
-        } catch (envioErr) {
-          console.error("Erro ao criar registro de envio:", envioErr);
-        }
+        // Log envio - desabilitado temporariamente ate corrigir estrutura da tabela
+        // try {
+        //   await createEnvio({
+        //     lead_id: leadId,
+        //     template_id: templateId,
+        //     instancia: instanceName,
+        //     status: "enviado",
+        //     message_id: response.key?.id || "",
+        //     enviado_em: new Date().toISOString(),
+        //   });
+        // } catch (envioErr) {
+        //   console.error("Erro ao criar registro de envio:", envioErr);
+        // }
 
         results.push({
           leadId,
@@ -144,19 +144,19 @@ export async function POST(request: NextRequest) {
           messageId: response.key?.id,
         });
       } catch (error) {
-        // Log failed envio (mas nao falha se o log der erro)
-        try {
-          await createEnvio({
-            lead_id: leadId,
-            template_id: templateId,
-            instancia: instanceName,
-            status: "erro",
-            erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
-            enviado_em: new Date().toISOString(),
-          });
-        } catch (envioErr) {
-          console.error("Erro ao criar registro de envio com erro:", envioErr);
-        }
+        // Log failed envio - desabilitado temporariamente
+        // try {
+        //   await createEnvio({
+        //     lead_id: leadId,
+        //     template_id: templateId,
+        //     instancia: instanceName,
+        //     status: "erro",
+        //     erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
+        //     enviado_em: new Date().toISOString(),
+        //   });
+        // } catch (envioErr) {
+        //   console.error("Erro ao criar registro de envio com erro:", envioErr);
+        // }
 
         results.push({
           leadId,
