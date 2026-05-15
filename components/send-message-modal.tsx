@@ -1,15 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Send, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { X, Send, Loader2, CheckCircle, XCircle, Pause, Play } from "lucide-react";
 import type { Template, Instance } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface LeadToSend {
+  id: number;
+  nome: string;
+  telefone: string;
+  message: string;
+}
 
 interface SendMessageModalProps {
   leadIds: number[];
@@ -31,15 +37,23 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
   const [selectedInstance, setSelectedInstance] = useState<string>("");
   const [delaySeconds, setDelaySeconds] = useState(60);
   const [isSending, setIsSending] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [leadsToSend, setLeadsToSend] = useState<LeadToSend[]>([]);
   const [results, setResults] = useState<{
     total: number;
     success: number;
     errors: number;
     details: { leadId: number; nome: string; success: boolean; error?: string }[];
   } | null>(null);
+  
+  const abortRef = useRef(false);
+  const pauseRef = useRef(false);
 
   const templates = templatesData?.list?.filter((t) => t.ativo) || [];
   const instances = instancesData?.connected || [];
+
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const handleSend = async () => {
     if (!selectedTemplate || !selectedInstance) {
@@ -47,8 +61,11 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
     }
 
     setIsSending(true);
+    abortRef.current = false;
+    pauseRef.current = false;
 
     try {
+      // Primeiro, pega a lista de leads com mensagens parseadas
       const response = await fetch("/api/whatsapp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -56,21 +73,97 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
           instanceName: selectedInstance,
           leadIds,
           templateId: selectedTemplate,
-          delayMs: delaySeconds * 1000,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erro ao enviar");
+        throw new Error(data.error || "Erro ao preparar envio");
+      }
+
+      if (data.mode !== "batch") {
+        throw new Error("Resposta inesperada da API");
+      }
+
+      const leads: LeadToSend[] = data.leads;
+      setLeadsToSend(leads);
+      
+      const details: { leadId: number; nome: string; success: boolean; error?: string }[] = [];
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Envia um por vez com delay
+      for (let i = 0; i < leads.length; i++) {
+        if (abortRef.current) break;
+        
+        // Pausa
+        while (pauseRef.current && !abortRef.current) {
+          await sleep(500);
+        }
+        if (abortRef.current) break;
+
+        setCurrentIndex(i);
+        const lead = leads[i];
+
+        try {
+          const sendRes = await fetch("/api/whatsapp/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              instanceName: selectedInstance,
+              leadId: lead.id,
+              message: lead.message,
+            }),
+          });
+
+          const sendData = await sendRes.json();
+
+          if (sendData.success) {
+            successCount++;
+            details.push({
+              leadId: lead.id,
+              nome: lead.nome,
+              success: true,
+            });
+          } else {
+            errorCount++;
+            details.push({
+              leadId: lead.id,
+              nome: lead.nome,
+              success: false,
+              error: sendData.error || "Erro desconhecido",
+            });
+          }
+        } catch (err) {
+          errorCount++;
+          details.push({
+            leadId: lead.id,
+            nome: lead.nome,
+            success: false,
+            error: err instanceof Error ? err.message : "Erro de conexao",
+          });
+        }
+
+        // Atualiza resultados em tempo real
+        setResults({
+          total: leads.length,
+          success: successCount,
+          errors: errorCount,
+          details: [...details],
+        });
+
+        // Delay entre mensagens (exceto na ultima)
+        if (i < leads.length - 1 && !abortRef.current) {
+          await sleep(delaySeconds * 1000);
+        }
       }
 
       setResults({
-        total: data.summary.total,
-        success: data.summary.success,
-        errors: data.summary.errors,
-        details: data.results,
+        total: leads.length,
+        success: successCount,
+        errors: errorCount,
+        details,
       });
     } catch (error) {
       setResults({
@@ -88,30 +181,120 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
       });
     } finally {
       setIsSending(false);
+      setIsPaused(false);
     }
   };
 
+  const handlePause = () => {
+    pauseRef.current = !pauseRef.current;
+    setIsPaused(!isPaused);
+  };
+
+  const handleStop = () => {
+    abortRef.current = true;
+    pauseRef.current = false;
+    setIsPaused(false);
+  };
+
   const selectedTemplateData = templates.find((t) => t.Id === selectedTemplate);
+
+  const isFinished = results && !isSending;
+  const progress = leadsToSend.length > 0 ? ((currentIndex + 1) / leadsToSend.length) * 100 : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <Card className="w-full max-w-lg mx-4">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Enviar Mensagem ({leadIds.length} leads)</CardTitle>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <CardTitle>
+            {isSending 
+              ? `Enviando... (${currentIndex + 1}/${leadsToSend.length})` 
+              : `Enviar Mensagem (${leadIds.length} leads)`}
+          </CardTitle>
+          <Button variant="ghost" size="icon" onClick={isFinished ? onSuccess : onClose} disabled={isSending && !isFinished}>
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {results ? (
+          {isSending && leadsToSend.length > 0 && (
+            <div className="space-y-4">
+              {/* Barra de progresso */}
+              <div className="space-y-2">
+                <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Enviando para: {leadsToSend[currentIndex]?.nome || "..."}</span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+              </div>
+
+              {/* Stats em tempo real */}
+              {results && (
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-3 rounded-lg bg-secondary">
+                    <p className="text-xl font-bold">{results.total}</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-emerald-500/20">
+                    <p className="text-xl font-bold text-emerald-500">{results.success}</p>
+                    <p className="text-xs text-muted-foreground">Sucesso</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-destructive/20">
+                    <p className="text-xl font-bold text-destructive">{results.errors}</p>
+                    <p className="text-xs text-muted-foreground">Erros</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Botoes de controle */}
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handlePause}
+                  className="flex-1"
+                >
+                  {isPaused ? (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Continuar
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="mr-2 h-4 w-4" />
+                      Pausar
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleStop}
+                  className="flex-1"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Parar
+                </Button>
+              </div>
+
+              {isPaused && (
+                <p className="text-center text-sm text-amber-500">
+                  Envio pausado. Clique em Continuar para retomar.
+                </p>
+              )}
+            </div>
+          )}
+
+          {isFinished && results && (
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="p-4 rounded-lg bg-secondary">
                   <p className="text-2xl font-bold">{results.total}</p>
                   <p className="text-sm text-muted-foreground">Total</p>
                 </div>
-                <div className="p-4 rounded-lg bg-success/20">
-                  <p className="text-2xl font-bold text-success">{results.success}</p>
+                <div className="p-4 rounded-lg bg-emerald-500/20">
+                  <p className="text-2xl font-bold text-emerald-500">{results.success}</p>
                   <p className="text-sm text-muted-foreground">Sucesso</p>
                 </div>
                 <div className="p-4 rounded-lg bg-destructive/20">
@@ -125,12 +308,12 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
                   <div
                     key={i}
                     className={`flex items-center justify-between p-2 rounded-lg ${
-                      detail.success ? "bg-success/10" : "bg-destructive/10"
+                      detail.success ? "bg-emerald-500/10" : "bg-destructive/10"
                     }`}
                   >
                     <span className="text-sm">{detail.nome}</span>
                     {detail.success ? (
-                      <CheckCircle className="h-4 w-4 text-success" />
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
                     ) : (
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-destructive">{detail.error}</span>
@@ -145,7 +328,9 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
                 Fechar
               </Button>
             </div>
-          ) : (
+          )}
+          
+          {!isSending && !results && (
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Instancia WhatsApp</label>
