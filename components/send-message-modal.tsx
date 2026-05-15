@@ -29,7 +29,7 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
 
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
   const [selectedInstance, setSelectedInstance] = useState<string>("");
-  const [delaySeconds, setDelaySeconds] = useState(10);
+  const [delaySeconds, setDelaySeconds] = useState(60);
   const [isSending, setIsSending] = useState(false);
   const [results, setResults] = useState<{
     total: number;
@@ -207,16 +207,20 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
                   value={delaySeconds.toString()}
                   onChange={(e) => setDelaySeconds(parseInt(e.target.value))}
                 >
-                  <option value="5">5 segundos (rapido - maior risco)</option>
-                  <option value="10">10 segundos (recomendado)</option>
-                  <option value="15">15 segundos (seguro)</option>
-                  <option value="30">30 segundos (muito seguro)</option>
-                  <option value="60">60 segundos (ultra seguro)</option>
+                  <option value="30">30 segundos</option>
+                  <option value="60">1 minuto (recomendado)</option>
+                  <option value="120">2 minutos</option>
+                  <option value="180">3 minutos</option>
+                  <option value="300">5 minutos (seguro)</option>
+                  <option value="600">10 minutos (ultra seguro)</option>
                 </Select>
-                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-xs text-amber-500">
-                    Intervalos maiores reduzem o risco de banimento do numero.
-                    Recomendamos no minimo 10 segundos entre mensagens.
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-500 font-medium mb-1">
+                    Protecao contra banimento
+                  </p>
+                  <p className="text-xs text-amber-500/80">
+                    Intervalos maiores sao mais seguros. Para {leadIds.length} leads com intervalo de {delaySeconds >= 60 ? `${Math.floor(delaySeconds / 60)} min` : `${delaySeconds}s`}, 
+                    o envio levara aproximadamente {Math.ceil((leadIds.length * delaySeconds) / 60)} minutos.
                   </p>
                 </div>
               </div>
