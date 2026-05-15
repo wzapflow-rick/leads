@@ -28,14 +28,36 @@ export async function POST(request: NextRequest) {
 
     // Get leads - converter IDs para comparacao correta (string/number)
     const leadsResult = await getLeads();
+    
+    // Debug: ver estrutura dos leads
+    console.log("[v0] Primeiro lead da lista:", JSON.stringify(leadsResult.list[0], null, 2));
+    console.log("[v0] IDs solicitados:", leadIds);
+    
+    // Funcao para extrair ID do lead (pode ser Id, id, ou nc_Id)
+    const getLeadId = (lead: Record<string, unknown>): number | undefined => {
+      return (lead.Id || lead.id || lead.nc_Id) as number | undefined;
+    };
+    
     const leadIdsSet = new Set(leadIds.map((id: number | string) => String(id)));
-    const leads = leadsResult.list.filter((lead) =>
-      lead.Id !== undefined && leadIdsSet.has(String(lead.Id))
-    );
+    const leads = leadsResult.list.filter((lead) => {
+      const id = getLeadId(lead as unknown as Record<string, unknown>);
+      return id !== undefined && leadIdsSet.has(String(id));
+    });
+    
+    console.log("[v0] Leads encontrados:", leads.length);
 
     if (leads.length === 0) {
+      // Retorna mais info para debug
+      const sampleIds = leadsResult.list.slice(0, 3).map(l => getLeadId(l as unknown as Record<string, unknown>));
       return NextResponse.json(
-        { error: `Nenhum lead encontrado. IDs solicitados: ${leadIds.join(", ")}` },
+        { 
+          error: `Nenhum lead encontrado. IDs solicitados: ${leadIds.join(", ")}. IDs existentes (amostra): ${sampleIds.join(", ")}`,
+          debug: {
+            requestedIds: leadIds,
+            sampleExistingIds: sampleIds,
+            firstLeadKeys: leadsResult.list[0] ? Object.keys(leadsResult.list[0]) : []
+          }
+        },
         { status: 404 }
       );
     }
@@ -48,10 +70,15 @@ export async function POST(request: NextRequest) {
       messageId?: string;
     }[] = [];
 
+    // Funcao para extrair ID (definida novamente no escopo)
+    const extractLeadId = (lead: Record<string, unknown>): number | undefined => {
+      return (lead.Id || lead.id || lead.nc_Id) as number | undefined;
+    };
+
     // Send messages with delay
     for (let i = 0; i < leads.length; i++) {
       const lead = leads[i];
-      const leadId = lead.Id;
+      const leadId = extractLeadId(lead as unknown as Record<string, unknown>);
 
       // Verifica se o lead tem ID valido
       if (!leadId) {
