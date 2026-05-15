@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Get leads - converter IDs para comparacao correta (string/number)
     const leadsResult = await getLeads();
-    const leadIdsSet = new Set(leadIds.map(id => String(id)));
+    const leadIdsSet = new Set(leadIds.map((id: number | string) => String(id)));
     const leads = leadsResult.list.filter((lead) =>
       lead.Id !== undefined && leadIdsSet.has(String(lead.Id))
     );
