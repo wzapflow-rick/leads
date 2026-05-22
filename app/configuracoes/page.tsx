@@ -235,7 +235,7 @@ export default function ConfiguracoesPage() {
             </CardContent>
           </Card>
 
-          {/* NocoDB Setup */}
+          {/* PostgreSQL */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -243,71 +243,67 @@ export default function ConfiguracoesPage() {
                   <Database className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>NocoDB - Setup das Tabelas</CardTitle>
-                  <CardDescription>Banco de dados para leads e templates</CardDescription>
+                  <CardTitle>PostgreSQL - Banco de Dados</CardTitle>
+                  <CardDescription>Conexao direta com PostgreSQL</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2 text-sm">
                 <p className="text-muted-foreground">
-                  Variaveis de ambiente necessarias:
+                  Variavel de ambiente necessaria:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li><code className="bg-secondary px-1 rounded">NOCODB_URL</code> - URL da sua instancia NocoDB</li>
-                  <li><code className="bg-secondary px-1 rounded">NOCODB_TOKEN</code> - Token de API do NocoDB</li>
+                  <li><code className="bg-secondary px-1 rounded">DATABASE_URL</code> - URL de conexao do PostgreSQL</li>
                 </ul>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Formato: postgresql://usuario:senha@host:porta/banco
+                </p>
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="font-medium mb-3">Criar Tabelas no NocoDB</h4>
+                <h4 className="font-medium mb-3">Tabelas do Sistema</h4>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Acesse seu NocoDB e crie as seguintes tabelas com os campos especificados:
+                  As seguintes tabelas devem existir no banco de dados:
                 </p>
                 
                 <div className="space-y-4">
                   <div className="p-4 rounded-lg bg-secondary/50 border">
-                    <h5 className="font-medium text-sm mb-2">1. Tabela: leads</h5>
+                    <h5 className="font-medium text-sm mb-2">1. Tabela: maquina_de_leads</h5>
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div>nome (Text)</div>
-                      <div>telefone (Text)</div>
-                      <div>endereco (Text)</div>
-                      <div>cidade (Text)</div>
-                      <div>estado (Text)</div>
-                      <div>nicho (Text)</div>
-                      <div>website (URL)</div>
-                      <div>rating (Number)</div>
-                      <div>status (SingleSelect)</div>
-                      <div>google_place_id (Text)</div>
+                      <div>nome (varchar 255)</div>
+                      <div>telefone (varchar 50)</div>
+                      <div>endereco (varchar 500)</div>
+                      <div>cidade (varchar 100)</div>
+                      <div>estado (varchar 50)</div>
+                      <div>nicho (varchar 100)</div>
+                      <div>website (varchar 500)</div>
+                      <div>rating (integer)</div>
+                      <div>status (text)</div>
+                      <div>google_place_id (varchar 255)</div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Status: novo, contatado, respondeu, convertido
-                    </p>
                   </div>
 
                   <div className="p-4 rounded-lg bg-secondary/50 border">
                     <h5 className="font-medium text-sm mb-2">2. Tabela: templates</h5>
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div>nome (Text)</div>
-                      <div>mensagem (LongText)</div>
-                      <div>ativo (Checkbox)</div>
+                      <div>nome (varchar 255)</div>
+                      <div>mensagem (text)</div>
+                      <div>ativo (boolean)</div>
                     </div>
                   </div>
 
                   <div className="p-4 rounded-lg bg-secondary/50 border">
                     <h5 className="font-medium text-sm mb-2">3. Tabela: envios</h5>
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div>lead_id (Number)</div>
-                      <div>template_id (Number)</div>
-                      <div>instancia (Text)</div>
-                      <div>status (SingleSelect)</div>
-                      <div>message_id (Text)</div>
-                      <div>enviado_em (DateTime)</div>
-                      <div>erro_mensagem (Text)</div>
+                      <div>lead_id (integer)</div>
+                      <div>template_id (integer)</div>
+                      <div>instancia (varchar 100)</div>
+                      <div>status (text)</div>
+                      <div>message_id (varchar 255)</div>
+                      <div>enviado_em (timestamp)</div>
+                      <div>erro_mensagem (varchar 500)</div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Status: enviado, erro, entregue
-                    </p>
                   </div>
                 </div>
               </div>
