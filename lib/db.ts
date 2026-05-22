@@ -3,17 +3,32 @@ import { Pool } from "pg";
 // Conexão com PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: false, // PostgreSQL local não usa SSL
+  ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000, // 10 segundos de timeout
+  idleTimeoutMillis: 30000,
+  max: 10,
 });
 
 // Helper para executar queries
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const result = await client.query(text, params);
     return result.rows as T[];
+  } catch (error) {
+    const err = error as Error & { code?: string };
+    if (err.code === "ECONNREFUSED") {
+      console.error("[v0] PostgreSQL connection refused. Check if:");
+      console.error("[v0] 1. The database server is running");
+      console.error("[v0] 2. The port is open on the firewall");
+      console.error("[v0] 3. postgresql.conf has listen_addresses = '*'");
+      console.error("[v0] 4. pg_hba.conf allows external connections");
+      throw new Error("Não foi possível conectar ao banco de dados. Verifique se o servidor está acessível.");
+    }
+    throw error;
   } finally {
-    client.release();
+    if (client) client.release();
   }
 }
 
