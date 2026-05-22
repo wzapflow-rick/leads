@@ -133,7 +133,7 @@ export async function createLead(lead: Omit<Lead, "id">): Promise<Lead> {
     lead.estado,
     lead.nicho,
     lead.website || null,
-    lead.rating || null,
+    lead.rating ? Math.round(lead.rating) : null,
     lead.status || "novo",
     lead.google_place_id || null,
     lead.created_at || new Date().toISOString(),
@@ -163,7 +163,7 @@ export async function createLeadsBulk(leads: Omit<Lead, "id">[]): Promise<Lead[]
       lead.estado,
       lead.nicho,
       lead.website || null,
-      lead.rating || null,
+      lead.rating ? Math.round(lead.rating) : null,
       lead.status || "novo",
       lead.google_place_id || null,
       lead.created_at || new Date().toISOString()
