@@ -89,7 +89,7 @@ export function TemplatesManager() {
   };
 
   const startEdit = (template: Template) => {
-    setEditingId(template.Id!);
+    setEditingId(template.id!);
     setFormData({
       nome: template.nome,
       mensagem: template.mensagem,
@@ -209,7 +209,7 @@ export function TemplatesManager() {
             <div className="space-y-4">
               {templates.map((template) => (
                 <div
-                  key={template.Id}
+                  key={template.id}
                   className="p-4 border border-border rounded-lg space-y-2"
                 >
                   <div className="flex items-center justify-between">
@@ -230,7 +230,7 @@ export function TemplatesManager() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(template.Id!)}
+                        onClick={() => handleDelete(template.id!)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

@@ -6,7 +6,7 @@ import {
   updateLead,
   deleteLead,
   checkLeadExists,
-} from "@/lib/nocodb";
+} from "@/lib/db";
 import type { Lead } from "@/lib/types";
 
 export async function GET(request: NextRequest) {

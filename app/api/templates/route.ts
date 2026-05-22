@@ -4,7 +4,7 @@ import {
   createTemplate,
   updateTemplate,
   deleteTemplate,
-} from "@/lib/nocodb";
+} from "@/lib/db";
 
 export async function GET() {
   try {

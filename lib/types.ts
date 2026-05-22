@@ -1,7 +1,7 @@
 export type LeadStatus = "novo" | "contatado" | "respondeu" | "convertido";
 
 export interface Lead {
-  Id?: number;
+  id?: number;
   nome: string;
   telefone: string;
   endereco?: string;
@@ -16,7 +16,7 @@ export interface Lead {
 }
 
 export interface Template {
-  Id?: number;
+  id?: number;
   nome: string;
   mensagem: string;
   ativo: boolean;
@@ -24,7 +24,7 @@ export interface Template {
 }
 
 export interface Envio {
-  Id?: number;
+  id?: number;
   lead_id: number;
   template_id: number;
   instancia: string;

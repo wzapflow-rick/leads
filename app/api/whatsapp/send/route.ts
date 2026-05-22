@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendTextMessage } from "@/lib/evolution-api";
-import { getLeads, updateLead, getTemplates } from "@/lib/nocodb";
+import { getLeads, updateLead, getTemplates } from "@/lib/db";
 import { parseTemplate, formatPhone } from "@/lib/utils";
 
 // Envia UMA mensagem por vez para evitar timeout da Vercel
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     // Get template
     const templatesResult = await getTemplates();
-    const template = templatesResult.list.find((t) => t.Id === templateId);
+    const template = templatesResult.list.find((t) => t.id === templateId);
 
     if (!template) {
       return NextResponse.json(
@@ -39,13 +39,8 @@ export async function POST(request: NextRequest) {
     const leadsResult = await getLeads();
     const leadIdsSet = new Set(leadIds.map((id: number | string) => String(id)));
     
-    const getLeadId = (lead: Record<string, unknown>): number | undefined => {
-      return (lead.Id || lead.id || lead.nc_Id) as number | undefined;
-    };
-    
     const leads = leadsResult.list.filter((lead) => {
-      const id = getLeadId(lead as unknown as Record<string, unknown>);
-      return id !== undefined && leadIdsSet.has(String(id));
+      return lead.id !== undefined && leadIdsSet.has(String(lead.id));
     });
 
     if (leads.length === 0) {
@@ -57,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Retorna a lista de leads para o frontend processar
     const leadsToSend = leads.map((lead) => ({
-      id: getLeadId(lead as unknown as Record<string, unknown>),
+      id: lead.id,
       nome: lead.nome,
       telefone: lead.telefone,
       message: parseTemplate(template.mensagem, {
@@ -93,13 +88,8 @@ async function sendSingleMessage(
   try {
     // Get lead info
     const leadsResult = await getLeads();
-    const getLeadId = (lead: Record<string, unknown>): number | undefined => {
-      return (lead.Id || lead.id || lead.nc_Id) as number | undefined;
-    };
     
-    const lead = leadsResult.list.find(
-      (l) => getLeadId(l as unknown as Record<string, unknown>) === leadId
-    );
+    const lead = leadsResult.list.find((l) => l.id === leadId);
 
     if (!lead) {
       return NextResponse.json({ error: "Lead nao encontrado" }, { status: 404 });
@@ -117,7 +107,7 @@ async function sendSingleMessage(
     let message = customMessage;
     if (!message && templateId) {
       const templatesResult = await getTemplates();
-      const template = templatesResult.list.find((t) => t.Id === templateId);
+      const template = templatesResult.list.find((t) => t.id === templateId);
       if (template) {
         message = parseTemplate(template.mensagem, {
           nome: lead.nome,

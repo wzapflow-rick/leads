@@ -63,7 +63,7 @@ export function LeadsTable() {
     if (selected.size === filteredLeads.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(filteredLeads.map((l) => l.Id!)));
+      setSelected(new Set(filteredLeads.map((l) => l.id!)));
     }
   };
 
@@ -193,13 +193,13 @@ export function LeadsTable() {
                 <tbody>
                   {filteredLeads.map((lead) => (
                     <tr
-                      key={lead.Id}
+                      key={lead.id}
                       className="border-b border-border hover:bg-secondary/50 transition-colors"
                     >
                       <td className="px-4 py-3">
                         <Checkbox
-                          checked={selected.has(lead.Id!)}
-                          onChange={() => toggleSelect(lead.Id!)}
+                          checked={selected.has(lead.id!)}
+                          onChange={() => toggleSelect(lead.id!)}
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -236,7 +236,7 @@ export function LeadsTable() {
                         <Select
                           value={lead.status}
                           onChange={(e) =>
-                            handleStatusChange(lead.Id!, e.target.value)
+                            handleStatusChange(lead.id!, e.target.value)
                           }
                           className="w-32 h-8 text-xs"
                         >
@@ -251,10 +251,10 @@ export function LeadsTable() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(lead.Id!)}
-                          disabled={deletingId === lead.Id}
+                          onClick={() => handleDelete(lead.id!)}
+                          disabled={deletingId === lead.id}
                         >
-                          {deletingId === lead.Id ? (
+                          {deletingId === lead.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Trash2 className="h-4 w-4 text-destructive" />

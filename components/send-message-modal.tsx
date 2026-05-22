@@ -196,7 +196,7 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
     setIsPaused(false);
   };
 
-  const selectedTemplateData = templates.find((t) => t.Id === selectedTemplate);
+  const selectedTemplateData = templates.find((t) => t.id === selectedTemplate);
 
   const isFinished = results && !isSending;
   const progress = leadsToSend.length > 0 ? ((currentIndex + 1) / leadsToSend.length) * 100 : 0;
@@ -360,7 +360,7 @@ export function SendMessageModal({ leadIds, onClose, onSuccess }: SendMessageMod
                 >
                   <option value="">Selecione um template</option>
                   {templates.map((template) => (
-                    <option key={template.Id} value={template.Id}>
+                    <option key={template.id} value={template.id}>
                       {template.nome}
                     </option>
                   ))}
