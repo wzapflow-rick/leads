@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BRAZILIAN_STATES } from "@/lib/utils";
-import { Search, Loader2, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Loader2, Filter, ChevronDown, ChevronUp, Flame, ThermometerSun, Snowflake, Globe, MapPin } from "lucide-react";
 import type { PlaceResult } from "@/lib/google-places";
 
 interface LeadSearchFormProps {
@@ -30,6 +30,9 @@ const NICHOS_SUGERIDOS = [
   "confeitaria",
   "salgados",
   "quentinha",
+  "food truck",
+  "espetaria",
+  "petiscaria",
 ];
 
 export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
@@ -37,24 +40,35 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
   const [maxAvaliacoes, setMaxAvaliacoes] = useState<number>(100);
-  const [excluirSemTelefone, setExcluirSemTelefone] = useState(true);
   const [excluirRedes, setExcluirRedes] = useState(true);
+  const [apenasQuentes, setApenasQuentes] = useState(false);
+  const [usarBairros, setUsarBairros] = useState(false);
+  const [excluirComSistema, setExcluirComSistema] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [totalBuscados, setTotalBuscados] = useState<number | null>(null);
+  const [stats, setStats] = useState<{
+    total: number;
+    quentes: number;
+    mornos: number;
+    frios: number;
+    semWebsite: number;
+    comSistema: number;
+  } | null>(null);
+  const [bairrosDisponiveis, setBairrosDisponiveis] = useState<string[]>([]);
 
   // Redes/franquias conhecidas para excluir
   const REDES_FRANQUIAS = [
     "mcdonald", "burger king", "subway", "domino", "pizza hut", 
     "habib", "giraffas", "bob's", "outback", "madero", "applebee",
-    "china in box", "spoleto", "ragazzo", "jeronimo", "bullguer"
+    "china in box", "spoleto", "ragazzo", "jeronimo", "bullguer",
+    "burger king", "kfc", "popeyes", "taco bell", "wendy"
   ];
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setTotalBuscados(null);
+    setStats(null);
 
     if (!nicho || !cidade || !estado) {
       setError("Preencha todos os campos");
@@ -67,7 +81,13 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
       const response = await fetch("/api/google-places", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nicho, cidade, estado }),
+        body: JSON.stringify({ 
+          nicho, 
+          cidade, 
+          estado,
+          usarBairros,
+          apenasQuentes,
+        }),
       });
 
       const data = await response.json();
@@ -77,19 +97,12 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
       }
 
       let results: PlaceResult[] = data.results;
-      const totalOriginal = results.length;
+      setBairrosDisponiveis(data.bairrosDisponiveis || []);
 
       // Filtrar por max avaliacoes (negocios menores)
       if (maxAvaliacoes > 0) {
         results = results.filter(
           (r) => !r.user_ratings_total || r.user_ratings_total <= maxAvaliacoes
-        );
-      }
-
-      // Excluir sem telefone
-      if (excluirSemTelefone) {
-        results = results.filter(
-          (r) => r.formatted_phone_number || r.international_phone_number
         );
       }
 
@@ -101,12 +114,22 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
         });
       }
 
-      // Ordenar por menos avaliacoes primeiro (negocios menores)
-      results.sort((a, b) => 
-        (a.user_ratings_total || 0) - (b.user_ratings_total || 0)
-      );
+      // Excluir quem ja tem sistema (website profissional)
+      if (excluirComSistema) {
+        results = results.filter((r) => !r.has_professional_website);
+      }
 
-      setTotalBuscados(totalOriginal);
+      // Atualiza stats apos filtros locais
+      const filteredStats = {
+        total: results.length,
+        quentes: results.filter(p => p.lead_quality === "quente").length,
+        mornos: results.filter(p => p.lead_quality === "morno").length,
+        frios: results.filter(p => p.lead_quality === "frio").length,
+        semWebsite: results.filter(p => !p.website).length,
+        comSistema: results.filter(p => p.has_professional_website).length,
+      };
+
+      setStats(filteredStats);
       onResults(results, { nicho, cidade, estado });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao buscar");
@@ -176,7 +199,7 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <Filter className="h-4 w-4" />
-            Filtros avancados (encontrar negocios menores)
+            Filtros avancados (encontrar leads de qualidade)
             {showAdvanced ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
@@ -190,7 +213,7 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Max. avaliacoes (negocios menores)
+                    Max. avaliacoes
                   </label>
                   <Select 
                     value={maxAvaliacoes.toString()} 
@@ -204,23 +227,24 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
                     <option value="500">Ate 500 avaliacoes</option>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Negocios com menos avaliacoes geralmente sao menores/mais novos
+                    Negocios menores = mais propensos a comprar
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Filtros automaticos
+                    Filtros de qualidade
                   </label>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={excluirSemTelefone}
-                        onChange={(e) => setExcluirSemTelefone(e.target.checked)}
+                        checked={excluirComSistema}
+                        onChange={(e) => setExcluirComSistema(e.target.checked)}
                         className="rounded border-border"
                       />
-                      Apenas com telefone
+                      <Globe className="h-3 w-3 text-muted-foreground" />
+                      Excluir quem ja tem sistema
                     </label>
                     <label className="flex items-center gap-2 text-sm">
                       <input
@@ -231,18 +255,62 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
                       />
                       Excluir redes/franquias
                     </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={apenasQuentes}
+                        onChange={(e) => setApenasQuentes(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      <Flame className="h-3 w-3 text-orange-500" />
+                      Apenas leads quentes/mornos
+                    </label>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Dica de busca
+                    Busca expandida
                   </label>
-                  <p className="text-xs text-muted-foreground">
-                    Use termos especificos como &quot;pizzaria delivery&quot;, 
-                    &quot;hamburgueria artesanal&quot;, &quot;marmitaria&quot; para encontrar 
-                    negocios menores. Evite termos genericos como &quot;restaurante&quot;.
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={usarBairros}
+                        onChange={(e) => setUsarBairros(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      Buscar por bairros (mais resultados)
+                    </label>
+                    {bairrosDisponiveis.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Bairros: {bairrosDisponiveis.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Busca por bairros pode encontrar ate 3x mais resultados
                   </p>
+                </div>
+              </div>
+
+              {/* Legenda de qualidade */}
+              <div className="border-t border-border pt-4">
+                <p className="text-sm font-medium mb-2">Legenda de qualidade:</p>
+                <div className="flex flex-wrap gap-4 text-xs">
+                  <div className="flex items-center gap-1">
+                    <Flame className="h-4 w-4 text-orange-500" />
+                    <span>Quente: Sem website, poucas avaliacoes</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ThermometerSun className="h-4 w-4 text-yellow-500" />
+                    <span>Morno: Potencial medio</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Snowflake className="h-4 w-4 text-blue-500" />
+                    <span>Frio: Ja tem sistema ou negocio grande</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -254,12 +322,12 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
             </div>
           )}
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Buscando (ate 60 resultados)...
+                  Buscando{usarBairros ? " (busca expandida)" : ""}...
                 </>
               ) : (
                 <>
@@ -269,10 +337,24 @@ export function LeadSearchForm({ onResults }: LeadSearchFormProps) {
               )}
             </Button>
 
-            {totalBuscados !== null && (
-              <span className="text-sm text-muted-foreground">
-                {totalBuscados} encontrados no Google, filtros aplicados
-              </span>
+            {stats && (
+              <div className="flex flex-wrap gap-3 text-sm">
+                <span className="text-muted-foreground">
+                  {stats.total} encontrados:
+                </span>
+                <span className="flex items-center gap-1 text-orange-500">
+                  <Flame className="h-4 w-4" />
+                  {stats.quentes} quentes
+                </span>
+                <span className="flex items-center gap-1 text-yellow-500">
+                  <ThermometerSun className="h-4 w-4" />
+                  {stats.mornos} mornos
+                </span>
+                <span className="flex items-center gap-1 text-blue-500">
+                  <Snowflake className="h-4 w-4" />
+                  {stats.frios} frios
+                </span>
+              </div>
             )}
           </div>
         </form>

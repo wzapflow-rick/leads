@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, Loader2, Star, Phone, Globe, MapPin } from "lucide-react";
+import { Save, Loader2, Star, Phone, Globe, MapPin, Flame, ThermometerSun, Snowflake, ExternalLink } from "lucide-react";
 import type { PlaceResult } from "@/lib/google-places";
 
 interface LeadResultsTableProps {
@@ -35,6 +35,12 @@ export function LeadResultsTable({ results, filters, onSave }: LeadResultsTableP
     } else {
       setSelected(new Set(results.map((r) => r.place_id)));
     }
+  };
+
+  // Selecionar apenas leads quentes
+  const selectQuentes = () => {
+    const quentes = results.filter(r => r.lead_quality === "quente");
+    setSelected(new Set(quentes.map(r => r.place_id)));
   };
 
   const handleSave = async () => {
@@ -90,30 +96,115 @@ export function LeadResultsTable({ results, filters, onSave }: LeadResultsTableP
     }
   };
 
+  const getQualityIcon = (quality?: string) => {
+    switch (quality) {
+      case "quente":
+        return <Flame className="h-4 w-4 text-orange-500" />;
+      case "morno":
+        return <ThermometerSun className="h-4 w-4 text-yellow-500" />;
+      case "frio":
+        return <Snowflake className="h-4 w-4 text-blue-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getQualityBadge = (quality?: string, score?: number) => {
+    const colors = {
+      quente: "bg-orange-500/20 text-orange-600 border-orange-500/30",
+      morno: "bg-yellow-500/20 text-yellow-600 border-yellow-500/30",
+      frio: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+    };
+    
+    const labels = {
+      quente: "Quente",
+      morno: "Morno",
+      frio: "Frio",
+    };
+
+    if (!quality) return null;
+
+    return (
+      <Badge variant="outline" className={`gap-1 ${colors[quality as keyof typeof colors]}`}>
+        {getQualityIcon(quality)}
+        {labels[quality as keyof typeof labels]}
+        {score !== undefined && <span className="text-xs opacity-70">({score})</span>}
+      </Badge>
+    );
+  };
+
+  const getWebsiteStatus = (place: PlaceResult) => {
+    if (!place.website) {
+      return (
+        <span className="text-xs text-green-600 flex items-center gap-1">
+          Sem website
+        </span>
+      );
+    }
+    
+    if (place.has_professional_website) {
+      return (
+        <a
+          href={place.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs text-red-500 hover:underline"
+        >
+          <Globe className="h-3 w-3" />
+          Tem sistema
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      );
+    }
+
+    return (
+      <a
+        href={place.website}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 text-xs text-yellow-600 hover:underline"
+      >
+        <Globe className="h-3 w-3" />
+        Rede social
+        <ExternalLink className="h-3 w-3" />
+      </a>
+    );
+  };
+
   if (results.length === 0) {
     return null;
   }
 
+  const quentesCount = results.filter(r => r.lead_quality === "quente").length;
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle>
             Resultados da Busca ({results.length} encontrados)
           </CardTitle>
-          <Button onClick={handleSave} disabled={isSaving || selected.size === 0}>
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Salvar Selecionados ({selected.size})
-              </>
+          <div className="flex flex-wrap items-center gap-2">
+            {quentesCount > 0 && (
+              <Button variant="outline" size="sm" onClick={selectQuentes}>
+                <Flame className="mr-1 h-4 w-4 text-orange-500" />
+                Selecionar {quentesCount} quentes
+              </Button>
             )}
-          </Button>
+            <Button onClick={handleSave} disabled={isSaving || selected.size === 0}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Salvar Selecionados ({selected.size})
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -121,7 +212,7 @@ export function LeadResultsTable({ results, filters, onSave }: LeadResultsTableP
           <div
             className={`mb-4 rounded-lg border p-3 ${
               message.type === "success"
-                ? "border-success/50 bg-success/10 text-success"
+                ? "border-green-500/50 bg-green-500/10 text-green-600"
                 : "border-destructive/50 bg-destructive/10 text-destructive"
             }`}
           >
@@ -138,6 +229,9 @@ export function LeadResultsTable({ results, filters, onSave }: LeadResultsTableP
                     checked={selected.size === results.length}
                     onChange={toggleSelectAll}
                   />
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  Qualidade
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                   Estabelecimento
@@ -157,7 +251,9 @@ export function LeadResultsTable({ results, filters, onSave }: LeadResultsTableP
               {results.map((place) => (
                 <tr
                   key={place.place_id}
-                  className="border-b border-border hover:bg-secondary/50 transition-colors"
+                  className={`border-b border-border hover:bg-secondary/50 transition-colors ${
+                    place.lead_quality === "quente" ? "bg-orange-500/5" : ""
+                  }`}
                 >
                   <td className="px-4 py-3">
                     <Checkbox
@@ -166,20 +262,18 @@ export function LeadResultsTable({ results, filters, onSave }: LeadResultsTableP
                     />
                   </td>
                   <td className="px-4 py-3">
+                    {getQualityBadge(place.lead_quality, place.lead_score)}
+                  </td>
+                  <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
                       <span className="font-medium text-foreground">
                         {place.name}
                       </span>
-                      {place.website && (
-                        <a
-                          href={place.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs text-primary hover:underline"
-                        >
-                          <Globe className="h-3 w-3" />
-                          Website
-                        </a>
+                      {getWebsiteStatus(place)}
+                      {place.user_ratings_total !== undefined && (
+                        <span className="text-xs text-muted-foreground">
+                          {place.user_ratings_total} avaliacoes
+                        </span>
                       )}
                     </div>
                   </td>
